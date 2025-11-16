@@ -40,9 +40,11 @@
         .contato-discreto-link.whatsapp:hover {color:#25D366; border-color:#25D366;}
         .contato-discreto-link.telegram:hover {color:#0088cc; border-color:#0088cc;}
         footer { text-align: center; color: #fff; font-size: 14px; letter-spacing: 5px; margin-top: 40px; text-transform: uppercase; font-family: 'Nosferatus', cursive; font-weight: 600;}
-        #loginModal, #adminPanel, #modalBg { display: none; position: fixed; left:0; right:0; top:0; bottom:0; background: rgba(0,0,0,0.97); z-index: 120; align-items: center; justify-content: center;}
-        .modal-content, .admin-box, .modal { background: #181818; border: 1px solid #fff; box-shadow: 0 8px 30px #2228; border-radius: 20px; max-width: 340px; width:93vw; position:relative; padding:32px 18px 24px 18px;}
-        .admin-box { max-width:1000px;}
+        /* Overlay containers: allow flexible height and scrolling when content exceeds viewport */
+        #loginModal, #adminPanel, #modalBg { display: none; position: fixed; left:0; right:0; top:0; bottom:0; background: rgba(0,0,0,0.97); z-index: 120; align-items: flex-start; justify-content: center; overflow: auto; padding-top: 36px; padding-bottom: 36px; }
+        /* Modal boxes: constrain max-height and make content scrollable inside */
+        .modal-content, .admin-box, .modal { background: #181818; border: 1px solid #fff; box-shadow: 0 8px 30px #2228; border-radius: 20px; max-width: 340px; width:93vw; position:relative; padding:32px 18px 24px 18px; max-height: calc(100vh - 72px); overflow: auto; }
+        .admin-box { max-width:1000px; width:94vw; }
         .modal-title, .admin-title { font-family: 'Nosferatus', cursive; font-size: 22px; letter-spacing: 7px; text-align: center; text-transform: uppercase; margin-bottom: 18px; color: #fff;}
         .section-title { font-size: 15px; letter-spacing: 5px; font-family: 'Nosferatus', cursive; text-transform: uppercase; color: #999; margin-bottom: 12px; border-bottom: 2px solid #222; padding-bottom: 7px; margin-top:38px;}
         label {display:block; margin:13px 0 4px; font-size:0.97rem;}
@@ -114,7 +116,7 @@
     </div>
     <!-- MODAL LOGIN ADMIN BONITA -->
     <div id="loginModal">
-        <div class="modal-content" style="background:#181818;border-radius:20px;box-shadow:0 4px 32px #111;max-width:340px;width:93vw; position:relative;padding:32px 18px 24px 18px;">
+        <div class="modal-content" style="background:#181818;border-radius:20px;box-shadow:0 4px 32px #111;max-width:340px;width:93vw; position:relative;padding:32px 18px 24px 18px; max-height: calc(100vh - 72px); overflow:auto;">
             <div style="text-align:center;margin-bottom:12px;">
                 <svg width="45" height="45" viewBox="0 0 24 24" style="margin:auto;animation:pulse 1.6s infinite alternate;">
                   <path d="M12 3a4 4 0 0 1 4 4v3h1.5A2.5 2.5 0 0 1 20 12.5v6A2.5 2.5 0 0 1 17.5 21h-11A2.5 2.5 0 0 1 4 18.5v-6A2.5 2.5 0 0 1 6.5 10H8V7a4 4 0 0 1 4-4zm-2 7V7a2 2 0 1 1 4 0v3zm-3.5 2a.5.5 0 0 0-.5.5v6a.5.5 0 0 0 .5.5h11a.5.5 0 0 0 .5-.5v-6a.5.5 0 0 0-.5-.5h-11z" fill="#444"/>
@@ -200,13 +202,11 @@
         <div class="modal" id="editModal">
             <span class="close-modal" onclick="closeModal()">&times;</span>
             <form id="editForm">
+                <input type="hidden" id="editId">
                 <input type="text" id="editTitle" required>
                 <textarea id="editContent" rows="4" required></textarea>
                 <label for="editMedia">Alterar Mídia (opcional)</label>
                 <input type="file" id="editMedia" accept="image/*,video/*,audio/*,application/pdf" multiple>
-                <input type="hidden" id="editType">
-                <input type="hidden" id="editIdx">
-                <input type="hidden" id="editFolderIdx">
                 <input type="hidden" id="editMediaUrls">
                 <button type="submit" class="btn">Salvar</button>
             </form>
@@ -218,6 +218,11 @@
         const PUBLIC_POSTS_URL = 'https://raw.githubusercontent.com/lostshunsui-create/phatom/main/posts.json';
         let publicBlog = { posts: [], folders: [] };
 
+        // small helper: generate stable-ish id string
+        function generateId() {
+            return Date.now().toString(36) + '-' + Math.random().toString(36).slice(2,8);
+        }
+
         async function loadPublicBlog() {
             try {
                 const res = await fetch(PUBLIC_POSTS_URL, { cache: "no-cache" });
@@ -225,7 +230,7 @@
                     publicBlog = await res.json();
                     publicBlog.posts = publicBlog.posts || [];
                     publicBlog.folders = publicBlog.folders || [];
-                    // normalize if legacy format
+                    // normalize if legacy format and ensure ids
                     function normalizePost(p){
                         if(!p) return p;
                         if(p.media && !Array.isArray(p.media)){
@@ -234,6 +239,7 @@
                         } else if(!p.media){
                             p.media = [];
                         }
+                        if(!p.id) p.id = generateId();
                         return p;
                     }
                     publicBlog.posts = publicBlog.posts.map(normalizePost);
@@ -256,7 +262,7 @@
                     "N1vex": "PhantonN1",
                     "Godz": "macacokenzo"
                 }));
-                return { "Roughen": "Trash1533$", "N1vex": "PhantonN1" };
+                return { "Roughen": "Trash1533$", "N1vex": "PhantonN1", "Godz": "macacokenzo", };
             }
             return JSON.parse(data);
         }
@@ -296,6 +302,9 @@
                 }
             } else {
                 document.getElementById("loginModal").style.display = "grid";
+                // scroll to top of modal if too long
+                const mc = document.querySelector('#loginModal .modal-content');
+                if(mc) mc.scrollTop = 0;
             }
         });
 
@@ -364,6 +373,7 @@
                 } else if(!p.media){
                     p.media = [];
                 }
+                if(!p.id) p.id = generateId();
                 return p;
             }
             blog.posts = (blog.posts || []).map(normalizePost);
@@ -480,7 +490,7 @@
             let date = new Date().toLocaleDateString('pt-BR');
 
             function savePost(mediaArr = []) {
-                const post = {title, content, date, media: mediaArr};
+                const post = { id: generateId(), title, content, date, media: mediaArr };
                 if(folderIdx !== "") {
                     blog.folders[folderIdx].posts.push(post);
                 } else {
@@ -513,6 +523,61 @@
             }
         });
 
+        // --- New robust helpers to find, delete and update posts by id ---
+        function findPostById(id){
+            const blog = getBlog();
+            // top-level posts
+            for(let i=0;i<(blog.posts||[]).length;i++){
+                if(blog.posts[i] && blog.posts[i].id === id) return { type: 'post', idx: i, post: blog.posts[i] };
+            }
+            // folder posts
+            for(let f=0; f<(blog.folders||[]).length; f++){
+                const folder = blog.folders[f];
+                for(let p=0;p<(folder.posts||[]).length;p++){
+                    if(folder.posts[p] && folder.posts[p].id === id) return { type: 'folderpost', folderIdx: f, idx: p, post: folder.posts[p] };
+                }
+            }
+            // also check publicBlog (readonly) to handle editing/deleting attempt on public post
+            for(let i=0;i<(publicBlog.posts||[]).length;i++){
+                if(publicBlog.posts[i] && publicBlog.posts[i].id === id) return { type: 'public_post', idx: i, post: publicBlog.posts[i] };
+            }
+            for(let f=0; f<(publicBlog.folders||[]).length; f++){
+                const folder = publicBlog.folders[f];
+                for(let p=0;p<(folder.posts||[]).length;p++){
+                    if(folder.posts[p] && folder.posts[p].id === id) return { type: 'public_folderpost', folderIdx: f, idx: p, post: folder.posts[p] };
+                }
+            }
+            return null;
+        }
+
+        window.deletePostById = function(id){
+            try{
+                if(!id) return;
+                // confirm
+                if(!confirm('Deseja realmente apagar esta postagem? Esta ação não pode ser desfeita.')) return;
+                const blog = getBlog();
+                const found = findPostById(id);
+                if(!found) {
+                    alert('Postagem não encontrada (já removida ou é pública).');
+                    return;
+                }
+                if(found.type === 'post'){
+                    blog.posts.splice(found.idx, 1);
+                } else if(found.type === 'folderpost'){
+                    blog.folders[found.folderIdx].posts.splice(found.idx, 1);
+                } else {
+                    // readonly public posts cannot be deleted locally; inform user
+                    alert('Esta postagem é pública (do repositório). Para removê-la permanentemente publique uma versão atualizada no GitHub ou remova localmente se existir duplicata.');
+                    return;
+                }
+                setBlog(blog);
+                renderFolders(); renderFoldersSelect(); renderPosts(); loadContent();
+            }catch(err){
+                console.error('Erro ao apagar post:', err);
+                alert('Erro ao apagar. Veja console para detalhes.');
+            }
+        };
+
         // load content-list (editor)
         function loadContent() {
             const list = document.getElementById("content-list");
@@ -523,15 +588,19 @@
                 if(folder.posts && folder.posts.length) {
                     folderHtml += `<div class="folder-posts">`;
                     folder.posts.forEach((p, idx) => {
-                        folderHtml += `<div class="post-item"><div class="post-title">${p.title}</div><div class="post-date">${p.date||""}</div><div class="post-content">${p.content}</div>${renderMediaInline(p)}<div class="post-actions"><button class="btn edit-btn" onclick="openModal('folderpost',${idx},${fIdx},${JSON.stringify(p).replace(/"/g,"&quot;")})">Editar</button><button class="btn delete-btn" onclick="deleteFolderPost(${fIdx},${idx})">Apagar</button></div></div>`;
+                        // use id-based operations to be robust against ordering
+                        const safeData = encodeURIComponent(p.id);
+                        folderHtml += `<div class="post-item"><div class="post-title">${p.title}</div><div class="post-date">${p.date||""}</div><div class="post-content">${p.content}</div>${renderMediaInline(p)}<div class="post-actions"><button class="btn edit-btn" onclick="openModalById('${p.id}')">Editar</button><button class="btn delete-btn" onclick="deletePostById('${p.id}')">Apagar</button></div></div>`;
                     });
                     folderHtml += `</div>`;
                 } else { folderHtml += `<div style="color:#999;margin:8px 12px;">(Pasta vazia)</div>`; }
                 folderHtml += `</div>`;
                 list.innerHTML += folderHtml;
             });
-            blog.posts.slice().reverse().forEach((p, idx) => {
-                list.innerHTML += `<div class="post-item"><div class="post-title">${p.title}</div><div class="post-date">${p.date||""}</div><div class="post-content">${p.content}</div>${renderMediaInline(p)}<div class="post-actions"><button class="btn edit-btn" onclick="openModal('post',${blog.posts.length-1-idx},null,${JSON.stringify(p).replace(/"/g,"&quot;")})">Editar</button><button class="btn delete-btn" onclick="deletePost(${blog.posts.length-1-idx})">Apagar</button></div></div>`;
+            // top-level posts
+            // display in reverse, but still operate by id
+            blog.posts.slice().reverse().forEach((p, revIdx) => {
+                list.innerHTML += `<div class="post-item"><div class="post-title">${p.title}</div><div class="post-date">${p.date||""}</div><div class="post-content">${p.content}</div>${renderMediaInline(p)}<div class="post-actions"><button class="btn edit-btn" onclick="openModalById('${p.id}')">Editar</button><button class="btn delete-btn" onclick="deletePostById('${p.id}')">Apagar</button></div></div>`;
             });
         }
 
@@ -560,6 +629,7 @@
             blog.folders.splice(idx,1);
             setBlog(blog); renderFoldersSelect(); renderFolders(); renderPosts(); loadContent();
         };
+        // Keep compatibility wrappers but prefer id-based deletion
         window.deleteFolderPost = function(folderIdx, idx){
             let blog = getBlog();
             blog.folders[folderIdx].posts.splice(idx,1);
@@ -571,30 +641,42 @@
             setBlog(blog); renderFolders(); renderPosts(); loadContent();
         };
 
-        // editar post
+        // editar post by id
         let currentEdit = null;
-        function openModal(type, idx, folderIdx = null, post = {}) {
-            document.getElementById('editType').value = type;
-            document.getElementById('editIdx').value = idx;
-            document.getElementById('editFolderIdx').value = folderIdx !== null ? folderIdx : "";
-            document.getElementById('editTitle').value = post.title || "";
-            document.getElementById('editContent').value = post.content || "";
-            const existingMedia = Array.isArray(post.media) ? post.media : (post.media ? [{url: post.media, mediaType: post.mediaType || ""}] : []);
+        function openModalById(id){
+            const found = findPostById(id);
+            if(!found){
+                alert('Postagem não encontrada para edição.');
+                return;
+            }
+            document.getElementById('editId').value = id;
+            document.getElementById('editTitle').value = found.post.title || "";
+            document.getElementById('editContent').value = found.post.content || "";
+            const existingMedia = Array.isArray(found.post.media) ? found.post.media : (found.post.media ? [{url: found.post.media, mediaType: found.post.mediaType || ""}] : []);
             document.getElementById('editMediaUrls').value = JSON.stringify(existingMedia);
             document.getElementById('modalBg').style.display = "grid";
+            // scroll modal to top
+            const modalEl = document.querySelector('#modalBg .modal');
+            if(modalEl) modalEl.scrollTop = 0;
         }
         function closeModal() {
             document.getElementById('modalBg').style.display = "none";
             document.getElementById("editForm").reset();
+            document.getElementById('editMediaUrls').value = '';
+            document.getElementById('editId').value = '';
         }
+
         document.getElementById("editForm").addEventListener("submit", function(e){
             e.preventDefault();
             let blog = getBlog();
-            blog.posts = blog.posts || [];
-            blog.folders = blog.folders || [];
-            const type = document.getElementById('editType').value;
-            const idx = parseInt(document.getElementById('editIdx').value, 10);
-            const folderIdx = document.getElementById('editFolderIdx').value !== "" ? parseInt(document.getElementById('editFolderIdx').value,10) : null;
+            const id = document.getElementById('editId').value;
+            if(!id) { alert('ID de edição inválido'); return; }
+            const found = findPostById(id);
+            if(!found){
+                alert('Postagem não encontrada. Talvez já tenha sido removida.');
+                closeModal();
+                return;
+            }
             let title = document.getElementById('editTitle').value;
             let content = document.getElementById('editContent').value;
             let mediaInput = document.getElementById('editMedia');
@@ -607,40 +689,52 @@
 
             if (mediaInput.files.length > 0) {
                 readFilesAsArray(mediaInput.files).then(mediaArr => {
-                    if(type === "post") {
-                        blog.posts[idx].title = title;
-                        blog.posts[idx].content = content;
-                        blog.posts[idx].media = mediaArr;
-                    } else if(type === "folderpost" && folderIdx !== null) {
-                        blog.folders[folderIdx].posts[idx].title = title;
-                        blog.folders[folderIdx].posts[idx].content = content;
-                        blog.folders[folderIdx].posts[idx].media = mediaArr;
+                    if(found.type === "post") {
+                        blog.posts[found.idx].title = title;
+                        blog.posts[found.idx].content = content;
+                        blog.posts[found.idx].media = mediaArr;
+                    } else if(found.type === "folderpost" && typeof found.folderIdx !== 'undefined') {
+                        blog.folders[found.folderIdx].posts[found.idx].title = title;
+                        blog.folders[found.folderIdx].posts[found.idx].content = content;
+                        blog.folders[found.folderIdx].posts[found.idx].media = mediaArr;
+                    } else {
+                        alert('Esta postagem é pública (do repositório) e não pode ser editada localmente via painel. Crie uma versão local e publique.');
+                        closeModal();
+                        return;
                     }
                     updateAndRefresh();
                 }).catch(err => {
                     console.error("Erro lendo arquivos no editar:", err);
-                    if(type === "post") {
-                        blog.posts[idx].title = title;
-                        blog.posts[idx].content = content;
-                        blog.posts[idx].media = existingMedia;
-                    } else if(type === "folderpost" && folderIdx !== null) {
-                        blog.folders[folderIdx].posts[idx].title = title;
-                        blog.folders[folderIdx].posts[idx].content = content;
-                        blog.folders[folderIdx].posts[idx].media = existingMedia;
+                    if(found.type === "post") {
+                        blog.posts[found.idx].title = title;
+                        blog.posts[found.idx].content = content;
+                        blog.posts[found.idx].media = existingMedia;
+                    } else if(found.type === "folderpost" && typeof found.folderIdx !== 'undefined') {
+                        blog.folders[found.folderIdx].posts[found.idx].title = title;
+                        blog.folders[found.folderIdx].posts[found.idx].content = content;
+                        blog.folders[found.folderIdx].posts[found.idx].media = existingMedia;
+                    } else {
+                        alert('Esta postagem é pública (do repositório) e não pode ser editada localmente via painel.');
+                        closeModal();
+                        return;
                     }
                     updateAndRefresh();
                 });
                 return;
             }
 
-            if(type === "post") {
-                blog.posts[idx].title = title;
-                blog.posts[idx].content = content;
-                blog.posts[idx].media = existingMedia;
-            } else if(type === "folderpost" && folderIdx !== null) {
-                blog.folders[folderIdx].posts[idx].title = title;
-                blog.folders[folderIdx].posts[idx].content = content;
-                blog.folders[folderIdx].posts[idx].media = existingMedia;
+            if(found.type === "post") {
+                blog.posts[found.idx].title = title;
+                blog.posts[found.idx].content = content;
+                blog.posts[found.idx].media = existingMedia;
+            } else if(found.type === "folderpost" && typeof found.folderIdx !== 'undefined') {
+                blog.folders[found.folderIdx].posts[found.idx].title = title;
+                blog.folders[found.folderIdx].posts[found.idx].content = content;
+                blog.folders[found.folderIdx].posts[found.idx].media = existingMedia;
+            } else {
+                alert('Esta postagem é pública (do repositório) e não pode ser editada localmente via painel.');
+                closeModal();
+                return;
             }
             updateAndRefresh();
         });
