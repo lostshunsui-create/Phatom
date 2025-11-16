@@ -1,23 +1,11 @@
 {
   "posts": [
     {
-      "title": "Bem-vindo ao Phantom Trace",
-      "content": "Este é o blog oficial do Phantom Trace. Aqui publicaremos novidades, anúncios e conteúdo exclusivo.",
+      "title": "Oi",
+      "content": "Jeesus",
       "date": "16/11/2025",
       "media": []
-    },
-  ],
-  "folders": [
-    {
-      "title": "Anúncios",
-      "posts": [
-        {
-          "title": "Atualização do Site",
-          "content": "Melhorias implementadas: suporte a múltiplas mídias por post e opção de publicar automaticamente no GitHub.",
-          "date": "16/11/2025",
-          "media": []
-        }
-      ]
     }
-  ]
+  ],
+  "folders": []
 }
