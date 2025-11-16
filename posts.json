@@ -1,11 +1,15 @@
 {
   "posts": [
     {
-      "title": "hsjjjshs",
-      "content": "jaajajj",
+      "title": "Bem-vindo ao Phantom Trace",
+      "content": "Este é o blog oficial do Phantom Trace. Aqui publicaremos novidades, anúncios e conteúdo exclusivo.",
       "date": "16/11/2025",
       "media": []
+    },
+    {
+  "folders": [
+
+      ]
     }
-  ],
-  "folders": []
+  ]
 }
