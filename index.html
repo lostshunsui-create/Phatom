@@ -1,0 +1,862 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phantom Trace Blog</title>
+    <link href="https://fonts.cdnfonts.com/css/nosferatu" rel="stylesheet">
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box;}
+        body { font-family: 'Inter', Arial, sans-serif; background: #000; color: #fff; min-height: 100vh; }
+        .container { max-width: 800px; margin: 0 auto; padding: 10px 7px;}
+        header { text-align: center; margin-bottom: 35px;}
+        .main-title {
+            font-family: 'Nosferatus', cursive; font-size: 42px; font-weight: 900; letter-spacing: 14px; text-transform: uppercase;
+            color: #fff; text-shadow: 0 0 15px #fff9, 0 0 10px #111; margin-bottom: 0.2em;
+        }
+        .subtitle { font-family: 'Nosferatus', cursive; font-size: 15px; letter-spacing: 6px; text-transform: uppercase;
+            color: #fff; font-weight: 700; }
+        .login-btn-top { position: fixed; top: 10px; right: 14px; z-index: 22; border: none; background: none; color: #999; cursor: pointer; padding: 0; font-size: 22px; width: 30px; height: 30px;}
+        .login-btn-top svg { display: block; margin: auto; transition: color .15s;}
+        .login-btn-top:hover svg { color: #fff; filter: drop-shadow(0 0 5px #fff);}
+        .folder-list, .blog-section { margin-bottom: 38px;}
+        .folder-title { font-family: 'Nosferatus', cursive; font-size: 19px; letter-spacing: 9px; color: #fff; font-weight: 600; margin: 18px 0 10px 0;}
+        .folder-btn, .folder-btn-add { background: #0a0a0a; color: #fff; border: 1px solid #444; margin: 6px 5px 6px 0; padding: 9px 18px; border-radius: 8px; text-transform: uppercase; font-size: 13px; letter-spacing: 2px; cursor: pointer; font-family: 'Nosferatus', cursive;}
+        .folder-btn.selected, .folder-btn-add.selected { border-color: #fff; color: #00b3f7;}
+        .folder-btn-add { background:#111; font-weight:bold;}
+        .post, .post-item {
+            background: #0a0a0a; border: 1px solid #222; box-shadow: 0 3px 10px rgba(0,0,0,.55);
+            margin-bottom: 20px; padding: 13px 9px; border-radius: 8px;
+        }
+        .post-title { font-family: 'Nosferatus', cursive; font-size: 21px; letter-spacing: 6px; text-transform: uppercase; color: #fff; margin-bottom: 7px;}
+        .post-date { font-size: 11px; color: #888; margin-bottom: 10px; letter-spacing: 1px; font-family: inherit;}
+        .post-content { font-size: 14px; color: #ddd; line-height: 1.4; margin-bottom: 8px;}
+        .media { margin-top: 6px; margin-bottom: 8px; display: block; max-width: 100%; border-radius: 6px;}
+        .contato-discreto-area { margin: 30px auto 0 auto; text-align: center;}
+        .contato-discreto-list { display: flex; gap: 18px; justify-content: center;}
+        .contato-discreto-nome { font-size:11px; color:#bbb; font-family:'Nosferatus',cursive; letter-spacing:2px; text-transform:uppercase; margin-top:2px; margin-bottom:3px;}
+        .contato-discreto-link { display:inline-flex;align-items:center;justify-content:center; width:24px;height:24px;border-radius:50%;background:#111;border:1px solid #444; color:#888;font-size:15px;text-decoration:none;transition: border-color .18s; padding:2px;}
+        .contato-discreto-link:hover {border-color:#fff; color:#fff;}
+        .contato-discreto-link.whatsapp:hover {color:#25D366; border-color:#25D366;}
+        .contato-discreto-link.telegram:hover {color:#0088cc; border-color:#0088cc;}
+        footer { text-align: center; color: #fff; font-size: 14px; letter-spacing: 5px; margin-top: 40px; text-transform: uppercase; font-family: 'Nosferatus', cursive; font-weight: 600;}
+        #loginModal, #adminPanel, #modalBg { display: none; position: fixed; left:0; right:0; top:0; bottom:0; background: rgba(0,0,0,0.97); z-index: 120; align-items: center; justify-content: center;}
+        .modal-content, .admin-box, .modal { background: #181818; border: 1px solid #fff; box-shadow: 0 8px 30px #2228; border-radius: 20px; max-width: 340px; width:93vw; position:relative; padding:32px 18px 24px 18px;}
+        .admin-box { max-width:1000px;}
+        .modal-title, .admin-title { font-family: 'Nosferatus', cursive; font-size: 22px; letter-spacing: 7px; text-align: center; text-transform: uppercase; margin-bottom: 18px; color: #fff;}
+        .section-title { font-size: 15px; letter-spacing: 5px; font-family: 'Nosferatus', cursive; text-transform: uppercase; color: #999; margin-bottom: 12px; border-bottom: 2px solid #222; padding-bottom: 7px; margin-top:38px;}
+        label {display:block; margin:13px 0 4px; font-size:0.97rem;}
+        .admin-box input, .admin-box textarea, .admin-box select, .modal-content input, .modal-content textarea { width: 100%; padding: 9px; margin-bottom:13px; border-radius: 7px; border: 1.2px solid #333; background: #222; color: #fff; font-size: 1rem; font-family: inherit; resize: none;}
+        input[type="file"] { background: #222; color: #fff; border: none; margin-bottom: 15px;}
+        .small { width:48%; display:inline-block; vertical-align:middle; }
+        .btn { padding: 12px 0; border-radius: 7px; border: none; background: #fff; color: #222; font-family:'Nosferatus',cursive; font-size: 1.02rem; font-weight: bold; letter-spacing: 4px; text-transform: uppercase; cursor: pointer; width:100%; transition: background .2s, color .2s;}
+        .btn:hover {background:#111;color:#fff;border:1px solid #fff;}
+        .close-btn, .close-modal { position:absolute; top:8px; right:12px; font-size:33px; color:#fff; background:none; border:none; cursor:pointer; z-index:99;}
+        .close-modal {position:static;float:right;top:auto;right:auto;}
+        .error-msg { color: #ff4747; text-align: center; margin-bottom: 8px; font-weight: bold;}
+        .folders-admin-list{ margin-bottom:18px; border-bottom: 1px solid #333; padding-bottom: 8px;}
+        .folder-item{margin-bottom:6px;}
+        .user-list {margin-top:15px;}
+        .user-row {display:flex;align-items:center;gap:12px;margin-bottom:8px;}
+        .user-row .btn {margin:0;padding:4px 9px;font-size:12px;}
+        .post-actions {display:flex;gap:12px;margin:7px 0 0 0;}
+        .delete-btn, .edit-btn {background: #ff4747;color: #fff;border: none;border-radius: 4px;padding: 6px 16px;cursor: pointer;font-size: 12px;letter-spacing: 2px;}
+        .edit-btn { background:#39f16b; color:#000;}
+        .edit-btn:hover { background:#fff; color:#000; border:1px solid #39f16b;}
+        .delete-btn:hover { background: #fff; color: #000; border: 1px solid #ff4747; }
+        .help { font-size:12px;color:#bbb;margin-top:6px; }
+        @media (max-width: 600px) { .modal-content, .admin-box, .modal {max-width:99vw; padding:17px 2vw;} .small{width:100%;} }
+        @media (max-width: 700px) { .container {max-width:99vw;} .main-title {font-size:27px;letter-spacing:7px;} .contato-discreto-list {gap:9px;} }
+        @keyframes pulse {0%{transform:scale(1)} 100%{transform:scale(1.09);filter:drop-shadow(0 1px 8px #fff3);}}
+    </style>
+</head>
+<body>
+    <button class="login-btn-top" id="openLogin" aria-label="Painel ADM">
+      <svg width="22" height="22" fill="currentColor" style="color:#999;" viewBox="0 0 24 24"><path d="M12 3a4 4 0 0 1 4 4v3h1.5A2.5 2.5 0 0 1 20 12.5v6A2.5 2.5 0 0 1 17.5 21h-11A2.5 2.5 0 0 1 4 18.5v-6A2.5 2.5 0 0 1 6.5 10H8V7a4 4 0 0 1 4-4zm-2 7V7a2 2 0 1 1 4 0v3zm-3.5 2a.5.5 0 0 0-.5.5v6a.5.5 0 0 0 .5.5h11a.5.5 0 0 0 .5-.5v-6a.5.5 0 0 0-.5-.5h-11z"/></svg>
+    </button>
+    <div class="container">
+        <header>
+            <div class="main-title">PHANTOM TRACE</div>
+            <p class="subtitle">Blog</p>
+        </header>
+        <div class="folder-list" id="folderList"></div>
+        <section class="blog-section" id="posts"></section>
+        <!-- CONTATOS DISCRETOS -->
+        <div class="contato-discreto-area">
+            <div class="contato-discreto-list">
+                <div>
+                    <span class="contato-discreto-nome">Trash</span>
+                    <a href="https://wa.me/+5511995510747" target="_blank" class="contato-discreto-link whatsapp" aria-label="WhatsApp Trash" title="WhatsApp Trash">
+                        <svg width="18" height="18" viewBox="0 0 32 32" fill="none">
+                            <circle cx="16" cy="16" r="16" fill="#25D366"/>
+                            <path d="M22.514 18.95c-.379-.19-2.238-1.075-2.584-1.197-.346-.121-.598-.19-.849.19-.25.379-.974 1.195-1.194 1.445-.22.25-.438.271-.808.09-.369-.18-1.563-.576-2.977-1.836-1.099-.981-1.84-2.19-2.057-2.558-.214-.369-.023-.568.162-.756.165-.164.369-.427.554-.64.187-.212.249-.362.369-.604.121-.242.059-.454-.03-.634-.089-.18-.849-2.053-1.164-2.801-.307-.743-.619-.641-.849-.651-.219-.009-.47-.012-.723-.012-.252 0-.66.094-1.005.447-.346.352-1.321 1.29-1.321 3.147 0 1.857 1.35 3.652 1.539 3.905.19.252 2.664 4.074 6.46 5.213.903.245 1.606.392 2.158.501.907.18 1.734.154 2.386.093.728-.073 2.238-.912 2.555-1.785.317-.872.317-1.619.222-1.785-.095-.164-.346-.263-.725-.452z" fill="#fff"/>
+                        </svg>
+                    </a>
+                </div>
+                <div>
+                    <span class="contato-discreto-nome">N1vex</span>
+                    <a href="https://wa.me/+5564992964436" target="_blank" class="contato-discreto-link whatsapp" aria-label="WhatsApp N1vex" title="WhatsApp N1vex">
+                        <svg width="18" height="18" viewBox="0 0 32 32" fill="none">
+                            <circle cx="16" cy="16" r="16" fill="#25D366"/>
+                            <path d="M22.514 18.95c-.379-.19-2.238-1.075-2.584-1.197-.346-.121-.598-.19-.849.19-.25.379-.974 1.195-1.194 1.445-.22.25-.438.271-.808.09-.369-.18-1.563-.576-2.977-1.836-1.099-.981-1.84-2.19-2.057-2.558-.214-.369-.023-.568.162-.756.165-.164.369-.427.554-.64.187-.212.249-.362.369-.604.121-.242.059-.454-.03-.634-.089-.18-.849-2.053-1.164-2.801-.307-.743-.619-.641-.849-.651-.219-.009-.47-.012-.723-.012-.252 0-.66.094-1.005.447-.346.352-1.321 1.29-1.321 3.147 0 1.857 1.35 3.652 1.539 3.905.19.252 2.664 4.074 6.46 5.213.903.245 1.606.392 2.158.501.907.18 1.734.154 2.386.093.728-.073 2.238-.912 2.555-1.785.317-.872.317-1.619.222-1.785-.095-.164-.346-.263-.725-.452z" fill="#fff"/>
+                        </svg>
+                    </a>
+                    <a href="https://t.me/soupcd" target="_blank" class="contato-discreto-link telegram" title="Telegram N1vex" aria-label="Telegram N1vex">
+                        <svg width="18" height="18" viewBox="0 0 32 32" fill="none">
+                            <circle cx="16" cy="16" r="16" fill="#0088cc"/>
+                            <path d="M25.5 7.5l-20 8.5c-1 .4-1 1.1-.1 1.4l5.1 1.6 2 6.1c.5 1.5.9 1.4 1.9.4l2.8-2.7 5.8 4.3c1.1.9 1.6.7 1.9-.8l3.3-15c.3-1.3-.5-2-1.7-1.3z" fill="#fff"/>
+                        </svg>
+                    </a>
+                </div>
+            </div>
+        </div>
+        <footer>@ 2025 Roughen • N1vex</footer>
+    </div>
+    <!-- MODAL LOGIN ADMIN BONITA -->
+    <div id="loginModal">
+        <div class="modal-content" style="background:#181818;border-radius:20px;box-shadow:0 4px 32px #111;max-width:340px;width:93vw; position:relative;padding:32px 18px 24px 18px;">
+            <div style="text-align:center;margin-bottom:12px;">
+                <svg width="45" height="45" viewBox="0 0 24 24" style="margin:auto;animation:pulse 1.6s infinite alternate;">
+                  <path d="M12 3a4 4 0 0 1 4 4v3h1.5A2.5 2.5 0 0 1 20 12.5v6A2.5 2.5 0 0 1 17.5 21h-11A2.5 2.5 0 0 1 4 18.5v-6A2.5 2.5 0 0 1 6.5 10H8V7a4 4 0 0 1 4-4zm-2 7V7a2 2 0 1 1 4 0v3zm-3.5 2a.5.5 0 0 0-.5.5v6a.5.5 0 0 0 .5.5h11a.5.5 0 0 0 .5-.5v-6a.5.5 0 0 0-.5-.5h-11z" fill="#444"/>
+                </svg>
+            </div>
+            <div class="modal-title" style="font-size:1.58rem;letter-spacing:8px;text-align:center;color:#fff;font-family:'Nosferatus',cursive;margin-bottom:21px;">LOGIN ADMIN</div>
+            <form id="loginForm" autocomplete="off">
+                <label for="user" style="color:#ccc;">Usuário</label>
+                <input type="text" id="user" required autofocus style="background:#222;border-radius:7px;padding:14px;font-size:17px;border:1.2px solid #333;color:#fff;margin-bottom:12px;">
+                <label for="pass" style="color:#ccc;">Senha</label>
+                <input type="password" id="pass" required style="background:#222;border-radius:7px;padding:14px;font-size:17px;border:1.2px solid #333;color:#fff;margin-bottom:17px;">
+                <button type="submit" class="btn" style="background:#fff;color:#222;font-family:'Nosferatus',cursive;padding:12px 0;font-size:1.02rem;letter-spacing:4px;border-radius:7px;border:none;">Entrar</button>
+                <div id="error" class="error-msg" style="margin-top:10px;"></div>
+            </form>
+            <button class="close-btn" onclick="hideLogin()" style="top:8px;right:12px;">&times;</button>
+        </div>
+    </div>
+    <!-- MODAL ADMIN PAINEL -->
+    <div id="adminPanel">
+        <div class="admin-box">
+            <button class="close-btn" onclick="hidePanel()">&times;</button>
+            <div class="admin-title">Painel Admin</div>
+            <div id="usersArea" style="display:none;">
+                <div class="section-title">Gerenciar Logins (apenas Roughen)</div>
+                <form id="newUserForm">
+                    <input type="text" id="newUserName" placeholder="Novo usuário" required>
+                    <input type="text" id="newUserPassword" placeholder="Senha" required>
+                    <button type="submit" class="btn">Criar Login</button>
+                </form>
+                <div id="userList" class="user-list"></div>
+            </div>
+
+            <div class="section-title">Config GitHub (opcional)</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                <input id="ghOwner" class="small" placeholder="owner (ex: seuUser)">
+                <input id="ghRepo" class="small" placeholder="repo (ex: seuRepo)">
+                <input id="ghBranch" class="small" placeholder="branch (ex: main)" value="main">
+                <input id="ghAssetsPath" class="small" placeholder="assetsPath (ex: assets)">
+                <input id="ghToken" class="small" placeholder="PAT (token) - sensível" type="password">
+            </div>
+            <div style="display:flex;gap:8px;margin-top:6px;">
+                <button id="saveGhBtn" class="btn" style="width:48%;">Salvar credenciais (local)</button>
+                <button id="clearGhBtn" class="btn" style="width:48%;">Remover token</button>
+            </div>
+            <div class="help">Aviso: o token fica no seu navegador (localStorage). Use apenas em ambiente confiável. Para maior segurança, use backend / GitHub Actions.</div>
+
+            <div class="section-title">Criar Pasta</div>
+            <form id="folderForm">
+                <input type="text" id="folder-title" placeholder="Título da pasta" required>
+                <button type="submit" class="btn">Criar Pasta</button>
+            </form>
+
+            <div class="section-title">Nova Postagem</div>
+            <form id="postForm" enctype="multipart/form-data">
+                <input type="text" id="post-title" placeholder="Título da postagem" required>
+                <textarea id="post-content" rows="4" placeholder="Conteúdo" required></textarea>
+                <label for="post-media">Mídia (Imagem, Vídeo, Áudio, PDF) — selecione quantos arquivos quiser</label>
+                <input type="file" id="post-media" accept="image/*,video/*,audio/*,application/pdf" multiple>
+                <label for="post-folder">Publicar em:</label>
+                <select id="post-folder"><option value="">Fora de pasta</option></select>
+                <label style="margin-top:6px;"><input type="checkbox" id="publishOnGitHub"> Publicar automaticamente no GitHub (se configurado)</label>
+                <button type="submit" class="btn">Publicar</button>
+            </form>
+
+            <div class="section-title">Postagens e Pastas</div>
+
+            <!-- minimal change: export button to download posts.json (mesclado) -->
+            <button id="exportBtn" class="btn" style="margin-bottom:10px;">Exportar posts públicos (baixar posts.json)</button>
+            <div id="exportMsg" style="color:#9f9;margin-bottom:12px;display:none;font-weight:bold;"></div>
+
+            <div class="section-title" style="margin-top:8px;">Gerenciamento</div>
+            <div id="content-list"></div>
+
+            <div style="margin-top:10px;">
+                <button id="publishNowBtn" class="btn">Publicar tudo no GitHub agora</button>
+                <div id="publishStatus" class="help" style="display:none;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para editar post -->
+    <div id="modalBg" style="display:none;">
+        <div class="modal" id="editModal">
+            <span class="close-modal" onclick="closeModal()">&times;</span>
+            <form id="editForm">
+                <input type="text" id="editTitle" required>
+                <textarea id="editContent" rows="4" required></textarea>
+                <label for="editMedia">Alterar Mídia (opcional)</label>
+                <input type="file" id="editMedia" accept="image/*,video/*,audio/*,application/pdf" multiple>
+                <input type="hidden" id="editType">
+                <input type="hidden" id="editIdx">
+                <input type="hidden" id="editFolderIdx">
+                <input type="hidden" id="editMediaUrls">
+                <button type="submit" class="btn">Salvar</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // PUBLIC posts.json path (será buscado do repositório público)
+        const PUBLIC_POSTS_URL = 'posts.json';
+        let publicBlog = { posts: [], folders: [] };
+
+        async function loadPublicBlog() {
+            try {
+                const res = await fetch(PUBLIC_POSTS_URL, { cache: "no-cache" });
+                if (res.ok) {
+                    publicBlog = await res.json();
+                    publicBlog.posts = publicBlog.posts || [];
+                    publicBlog.folders = publicBlog.folders || [];
+                    // normalize if legacy format
+                    function normalizePost(p){
+                        if(!p) return p;
+                        if(p.media && !Array.isArray(p.media)){
+                            p.media = [{ url: p.media, mediaType: p.mediaType || "" }];
+                            delete p.mediaType;
+                        } else if(!p.media){
+                            p.media = [];
+                        }
+                        return p;
+                    }
+                    publicBlog.posts = publicBlog.posts.map(normalizePost);
+                    publicBlog.folders = publicBlog.folders.map(f => {
+                        f.posts = (f.posts || []).map(normalizePost);
+                        return f;
+                    });
+                }
+            } catch (e) {
+                console.log("Erro ao carregar posts públicos:", e);
+            }
+        }
+
+        // Admins (localStorage)
+        function getAdmins() {
+            let data = localStorage.getItem("phantomtrace_admins");
+            if (!data) {
+                localStorage.setItem("phantomtrace_admins", JSON.stringify({
+                    "Roughen": "Trash1533$",
+                    "N1vex": "PhantonN1"
+                }));
+                return { "Roughen": "Trash1533$", "N1vex": "PhantonN1" };
+            }
+            return JSON.parse(data);
+        }
+        function setAdmins(obj) {
+            localStorage.setItem("phantomtrace_admins", JSON.stringify(obj));
+        }
+
+        let loggedUser = null;
+        let isAuthenticated = false;
+
+        function showAdminPanel(){
+            const panel = document.getElementById("adminPanel");
+            panel.style.display = "grid";
+            renderFoldersSelect();
+            loadContent();
+            if (loggedUser === "Roughen") {
+                document.getElementById("usersArea").style.display = "block";
+                renderUserList();
+            } else {
+                document.getElementById("usersArea").style.display = "none";
+            }
+            // prefill GitHub inputs from saved config
+            const cfg = loadGitHubConfig();
+            if(cfg.owner) document.getElementById('ghOwner').value = cfg.owner;
+            if(cfg.repo) document.getElementById('ghRepo').value = cfg.repo;
+            if(cfg.branch) document.getElementById('ghBranch').value = cfg.branch;
+            if(cfg.assetsPath) document.getElementById('ghAssetsPath').value = cfg.assetsPath;
+        }
+
+        document.getElementById("openLogin").addEventListener("click", function(){
+            if(isAuthenticated && loggedUser){
+                const panel = document.getElementById("adminPanel");
+                if(panel.style.display === "grid") {
+                    panel.style.display = "none";
+                } else {
+                    showAdminPanel();
+                }
+            } else {
+                document.getElementById("loginModal").style.display = "grid";
+            }
+        });
+
+        function hideLogin(){document.getElementById("loginModal").style.display="none";}
+        function hidePanel(){document.getElementById("adminPanel").style.display="none"; currentEdit=null;}
+
+        document.getElementById("loginForm").addEventListener("submit", function(e){
+            e.preventDefault();
+            const username = document.getElementById("user").value.trim();
+            const password = document.getElementById("pass").value;
+            const errorDiv = document.getElementById("error");
+            const admins = getAdmins();
+            if (admins[username] && admins[username] === password) {
+                loggedUser = username;
+                isAuthenticated = true;
+                document.getElementById("loginModal").style.display = "none";
+                errorDiv.textContent = "";
+                console.log("Autenticado como", loggedUser, "- clique no cadeado para abrir o painel.");
+            } else {
+                errorDiv.textContent = "Usuário ou senha inválidos.";
+            }
+        });
+
+        // User management
+        function renderUserList() {
+            let admins = getAdmins();
+            const userList = document.getElementById("userList");
+            userList.innerHTML = "";
+            Object.entries(admins).forEach(([user, pass]) => {
+                userList.innerHTML += `<div class="user-row">${user !== "Roughen" ? `<button class="btn" onclick="removeAdmin('${user}')">Remover</button>` : ""}<span>${user}</span></div>`;
+            });
+        }
+        document.getElementById("newUserForm").addEventListener("submit", function(e){
+            e.preventDefault();
+            let username = document.getElementById("newUserName").value.trim();
+            let password = document.getElementById("newUserPassword").value;
+            if (username && password) {
+                let admins = getAdmins();
+                admins[username] = password;
+                setAdmins(admins);
+                renderUserList();
+                document.getElementById("newUserForm").reset();
+            }
+        });
+        window.removeAdmin = function(user){
+            let admins = getAdmins();
+            if(user !== "Roughen") delete admins[user];
+            setAdmins(admins);
+            renderUserList();
+        }
+
+        // Blog storage with compatibility
+        function getBlog(){
+            let data = localStorage.getItem("phantomtrace_blog");
+            if(!data){
+                let obj={posts:[],folders:[]};
+                localStorage.setItem("phantomtrace_blog",JSON.stringify(obj));
+                return obj;
+            }
+            const blog = JSON.parse(data);
+            function normalizePost(p){
+                if(!p) return p;
+                if(p.media && !Array.isArray(p.media)){
+                    p.media = [{ url: p.media, mediaType: p.mediaType || "" }];
+                    delete p.mediaType;
+                } else if(!p.media){
+                    p.media = [];
+                }
+                return p;
+            }
+            blog.posts = (blog.posts || []).map(normalizePost);
+            blog.folders = (blog.folders || []).map(f => {
+                f.posts = (f.posts || []).map(normalizePost);
+                return f;
+            });
+            return blog;
+        }
+        function setBlog(obj){
+            localStorage.setItem("phantomtrace_blog",JSON.stringify(obj));
+        }
+
+        // Render folders (merge public + local)
+        function renderFolders(){
+            const folders = getBlog().folders||[];
+            const publicFolders = (publicBlog.folders || []).map(f => f.title);
+            const localFolders = folders.map(f => f.title);
+            const all = Array.from(new Set([...publicFolders, ...localFolders]));
+            if(all.length){
+                let html = '<span class="folder-title">Pastas / Páginas:</span><br>';
+                all.forEach((t) => {
+                    html += `<button class="folder-btn" onclick="selectFolder('${t}')">${t}</button>`;
+                });
+                html += `<button class="folder-btn" onclick="selectFolder('')">Livre</button>`;
+                document.getElementById("folderList").innerHTML=html;
+            }else{
+                document.getElementById("folderList").innerHTML="";
+            }
+        }
+        let selectedFolder = "";
+        function selectFolder(f){ selectedFolder=f; renderPosts(); }
+
+        // read multiple files as dataURLs
+        function readFilesAsArray(fileList){
+            const files = Array.from(fileList || []);
+            const readers = files.map(file => new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = e => resolve({ url: e.target.result, mediaType: file.type });
+                reader.onerror = err => reject(err);
+                reader.readAsDataURL(file);
+            }));
+            return Promise.all(readers);
+        }
+
+        // render posts merging public + local
+        function renderPosts(){
+            const postSection = document.getElementById("posts");
+            postSection.innerHTML = "";
+            let blog = getBlog();
+            let posts = [];
+            if(selectedFolder!==""){
+                const publicFolder = (publicBlog.folders || []).find(ff=>ff.title===selectedFolder);
+                const localFolder = blog.folders.find(ff=>ff.title===selectedFolder);
+                posts = [...(publicFolder?.posts || []), ...(localFolder?.posts || [])];
+            } else {
+                posts = [...(publicBlog.posts || []), ...(blog.posts || [])];
+            }
+            posts.slice().reverse().forEach(post => {
+                let mediaHtml = '';
+                if(post.media && Array.isArray(post.media) && post.media.length){
+                    mediaHtml = post.media.map(m=>{
+                        if(!m || !m.url) return '';
+                        if((m.mediaType||'').startsWith('image/') || m.url.match(/\.(png|jpe?g|gif|webp)(\?.*)?$/i)) return `<img class="media" src="${m.url}" alt="imagem">`;
+                        if((m.mediaType||'').startsWith('video/') || m.url.match(/\.(mp4|webm|ogg)(\?.*)?$/i)) return `<video class="media" controls src="${m.url}"></video>`;
+                        if((m.mediaType||'').startsWith('audio/') || m.url.match(/\.(mp3|wav|ogg)(\?.*)?$/i)) return `<audio class="media" controls src="${m.url}"></audio>`;
+                        if((m.mediaType||'')==='application/pdf' || m.url.match(/\.pdf(\?.*)?$/i)) return `<a class="media" href="${m.url}" target="_blank">Ver PDF</a>`;
+                        return `<a class="media" href="${m.url}" target="_blank">Abrir arquivo</a>`;
+                    }).join('');
+                }
+                postSection.innerHTML += `
+                  <div class="post">
+                    <div class="post-title">${post.title}</div>
+                    <div class="post-date">${post.date||""}${post.folder?` • <span class="folder-title">${post.folder}</span>`:""}</div>
+                    <div class="post-content">${post.content}</div>
+                    ${mediaHtml}
+                  </div>
+                `;
+            });
+        }
+
+        // inicialização
+        loadPublicBlog().then(()=>{ renderFolders(); renderPosts(); });
+
+        // renderFoldersSelect original
+        function renderFoldersSelect(){
+            let blog = getBlog();
+            const select = document.getElementById("post-folder");
+            select.innerHTML = '<option value="">Fora de pasta</option>';
+            blog.folders.forEach((f, idx) => {
+                select.innerHTML += `<option value="${idx}">${f.title}</option>`;
+            });
+        }
+
+        document.getElementById("folderForm").addEventListener("submit", function(e){
+            e.preventDefault();
+            let blog = getBlog();
+            const title = document.getElementById("folder-title").value;
+            blog.folders.push({title, posts:[]});
+            setBlog(blog);
+            document.getElementById("folderForm").reset();
+            renderFolders(); renderFoldersSelect(); loadContent();
+        });
+
+        // publicação local: aceita múltiplos arquivos
+        document.getElementById("postForm").addEventListener("submit", function(e){
+            e.preventDefault();
+            let blog = getBlog();
+            const title = document.getElementById("post-title").value;
+            const content = document.getElementById("post-content").value;
+            const folderIdx = document.getElementById("post-folder").value;
+            const mediaInput = document.getElementById("post-media");
+            const publishOnGitHub = document.getElementById("publishOnGitHub").checked;
+            let date = new Date().toLocaleDateString('pt-BR');
+
+            function savePost(mediaArr = []) {
+                const post = {title, content, date, media: mediaArr};
+                if(folderIdx !== "") {
+                    blog.folders[folderIdx].posts.push(post);
+                } else {
+                    blog.posts.push(post);
+                }
+                setBlog(blog);
+                document.getElementById("postForm").reset();
+                loadContent(); renderFolders(); renderPosts();
+
+                // if requested, publish to GitHub (requires saved config/token)
+                if(publishOnGitHub){
+                    const status = document.getElementById('publishStatus');
+                    status.style.display = 'block'; status.textContent = 'Publicando no GitHub...';
+                    publishBlogToGitHub().then(res => {
+                        status.textContent = 'Publicação no GitHub concluída.';
+                        setTimeout(()=> status.style.display='none', 5000);
+                        // recarrega posts públicos para mostrar imediatamente
+                        loadPublicBlog().then(()=> renderPosts());
+                    }).catch(err=>{
+                        status.textContent = 'Erro publicação: '+ (err && err.message ? err.message : err);
+                        console.error(err);
+                    });
+                }
+            }
+
+            if(mediaInput.files.length){
+                readFilesAsArray(mediaInput.files).then(mediaArr => savePost(mediaArr)).catch(err => { console.error(err); savePost([]); });
+            } else {
+                savePost([]);
+            }
+        });
+
+        // load content-list (editor)
+        function loadContent() {
+            const list = document.getElementById("content-list");
+            list.innerHTML = "";
+            let blog = getBlog();
+            blog.folders.forEach((folder, fIdx) => {
+                let folderHtml = `<div class="folder-item"><div class="folder-title"><span>Pasta: ${folder.title}</span><button class="btn delete-btn" onclick="deleteFolder(${fIdx})">Apagar Pasta</button></div>`;
+                if(folder.posts && folder.posts.length) {
+                    folderHtml += `<div class="folder-posts">`;
+                    folder.posts.forEach((p, idx) => {
+                        folderHtml += `<div class="post-item"><div class="post-title">${p.title}</div><div class="post-date">${p.date||""}</div><div class="post-content">${p.content}</div>${renderMediaInline(p)}<div class="post-actions"><button class="btn edit-btn" onclick="openModal('folderpost',${idx},${fIdx},${JSON.stringify(p).replace(/"/g,"&quot;")})">Editar</button><button class="btn delete-btn" onclick="deleteFolderPost(${fIdx},${idx})">Apagar</button></div></div>`;
+                    });
+                    folderHtml += `</div>`;
+                } else { folderHtml += `<div style="color:#999;margin:8px 12px;">(Pasta vazia)</div>`; }
+                folderHtml += `</div>`;
+                list.innerHTML += folderHtml;
+            });
+            blog.posts.slice().reverse().forEach((p, idx) => {
+                list.innerHTML += `<div class="post-item"><div class="post-title">${p.title}</div><div class="post-date">${p.date||""}</div><div class="post-content">${p.content}</div>${renderMediaInline(p)}<div class="post-actions"><button class="btn edit-btn" onclick="openModal('post',${blog.posts.length-1-idx},null,${JSON.stringify(p).replace(/"/g,"&quot;")})">Editar</button><button class="btn delete-btn" onclick="deletePost(${blog.posts.length-1-idx})">Apagar</button></div></div>`;
+            });
+        }
+
+        function renderMediaInline(post){
+            if(!post) return "";
+            const medias = Array.isArray(post.media) ? post.media : (post.media ? [{url: post.media, mediaType: post.mediaType || ""}] : []);
+            if(!medias.length) return "";
+            return medias.map(m => {
+                if(!m || !m.url) return "";
+                if((m.mediaType || "").startsWith("image/") || m.url.match(/\.(png|jpe?g|gif|webp)(\?.*)?$/i)){
+                    return `<img class="media" src="${m.url}" alt="imagem">`;
+                } else if((m.mediaType || "").startsWith("video/") || m.url.match(/\.(mp4|webm|ogg)(\?.*)?$/i)){
+                    return `<video class="media" controls src="${m.url}"></video>`;
+                } else if((m.mediaType || "").startsWith("audio/") || m.url.match(/\.(mp3|wav|ogg)(\?.*)?$/i)){
+                    return `<audio class="media" controls src="${m.url}"></audio>`;
+                } else if((m.mediaType || "") === "application/pdf" || m.url.match(/\.pdf(\?.*)?$/i)){
+                    return `<a class="media" href="${m.url}" target="_blank">Ver PDF</a>`;
+                } else {
+                    return `<a class="media" href="${m.url}" target="_blank">Abrir arquivo</a>`;
+                }
+            }).join("");
+        }
+
+        window.deleteFolder = function(idx){
+            let blog = getBlog();
+            blog.folders.splice(idx,1);
+            setBlog(blog); renderFoldersSelect(); renderFolders(); renderPosts(); loadContent();
+        };
+        window.deleteFolderPost = function(folderIdx, idx){
+            let blog = getBlog();
+            blog.folders[folderIdx].posts.splice(idx,1);
+            setBlog(blog); renderFolders(); renderPosts(); loadContent();
+        };
+        window.deletePost = function(idx){
+            let blog = getBlog();
+            blog.posts.splice(idx,1);
+            setBlog(blog); renderFolders(); renderPosts(); loadContent();
+        };
+
+        // editar post
+        let currentEdit = null;
+        function openModal(type, idx, folderIdx = null, post = {}) {
+            document.getElementById('editType').value = type;
+            document.getElementById('editIdx').value = idx;
+            document.getElementById('editFolderIdx').value = folderIdx !== null ? folderIdx : "";
+            document.getElementById('editTitle').value = post.title || "";
+            document.getElementById('editContent').value = post.content || "";
+            const existingMedia = Array.isArray(post.media) ? post.media : (post.media ? [{url: post.media, mediaType: post.mediaType || ""}] : []);
+            document.getElementById('editMediaUrls').value = JSON.stringify(existingMedia);
+            document.getElementById('modalBg').style.display = "grid";
+        }
+        function closeModal() {
+            document.getElementById('modalBg').style.display = "none";
+            document.getElementById("editForm").reset();
+        }
+        document.getElementById("editForm").addEventListener("submit", function(e){
+            e.preventDefault();
+            let blog = getBlog();
+            blog.posts = blog.posts || [];
+            blog.folders = blog.folders || [];
+            const type = document.getElementById('editType').value;
+            const idx = parseInt(document.getElementById('editIdx').value, 10);
+            const folderIdx = document.getElementById('editFolderIdx').value !== "" ? parseInt(document.getElementById('editFolderIdx').value,10) : null;
+            let title = document.getElementById('editTitle').value;
+            let content = document.getElementById('editContent').value;
+            let mediaInput = document.getElementById('editMedia');
+            let existingMedia = [];
+            try { existingMedia = JSON.parse(document.getElementById('editMediaUrls').value || '[]'); } catch(e){ existingMedia = []; }
+
+            function updateAndRefresh(){
+                setBlog(blog); loadContent(); renderFolders(); renderPosts(); closeModal();
+            }
+
+            if (mediaInput.files.length > 0) {
+                readFilesAsArray(mediaInput.files).then(mediaArr => {
+                    if(type === "post") {
+                        blog.posts[idx].title = title;
+                        blog.posts[idx].content = content;
+                        blog.posts[idx].media = mediaArr;
+                    } else if(type === "folderpost" && folderIdx !== null) {
+                        blog.folders[folderIdx].posts[idx].title = title;
+                        blog.folders[folderIdx].posts[idx].content = content;
+                        blog.folders[folderIdx].posts[idx].media = mediaArr;
+                    }
+                    updateAndRefresh();
+                }).catch(err => {
+                    console.error("Erro lendo arquivos no editar:", err);
+                    if(type === "post") {
+                        blog.posts[idx].title = title;
+                        blog.posts[idx].content = content;
+                        blog.posts[idx].media = existingMedia;
+                    } else if(type === "folderpost" && folderIdx !== null) {
+                        blog.folders[folderIdx].posts[idx].title = title;
+                        blog.folders[folderIdx].posts[idx].content = content;
+                        blog.folders[folderIdx].posts[idx].media = existingMedia;
+                    }
+                    updateAndRefresh();
+                });
+                return;
+            }
+
+            if(type === "post") {
+                blog.posts[idx].title = title;
+                blog.posts[idx].content = content;
+                blog.posts[idx].media = existingMedia;
+            } else if(type === "folderpost" && folderIdx !== null) {
+                blog.folders[folderIdx].posts[idx].title = title;
+                blog.folders[folderIdx].posts[idx].content = content;
+                blog.folders[folderIdx].posts[idx].media = existingMedia;
+            }
+            updateAndRefresh();
+        });
+
+        // buildExportableBlog (mescla public + local) - já usado para export/upload
+        function buildExportableBlog() {
+            const local = getBlog();
+            const merged = { posts: [], folders: [] };
+            merged.posts = [...(publicBlog.posts || []).map(p => ({...p})), ...(local.posts || []).map(p => ({...p}))];
+            const folderMap = new Map();
+            (publicBlog.folders || []).forEach(f => {
+                folderMap.set(f.title, { title: f.title, posts: Array.isArray(f.posts) ? f.posts.map(p => ({...p})) : [] });
+            });
+            (local.folders || []).forEach(f => {
+                if (folderMap.has(f.title)) {
+                    folderMap.get(f.title).posts = [...folderMap.get(f.title).posts, ...(f.posts || []).map(p => ({...p}))];
+                } else {
+                    folderMap.set(f.title, { title: f.title, posts: Array.isArray(f.posts) ? f.posts.map(p => ({...p})) : [] });
+                }
+            });
+            merged.folders = Array.from(folderMap.values());
+            return merged;
+        }
+
+        // export button (download posts.json)
+        document.getElementById('exportBtn').addEventListener('click', function(){
+            const exportObj = buildExportableBlog();
+            const jsonStr = JSON.stringify(exportObj, null, 2);
+            const blob = new Blob([jsonStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'posts.json';
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(url);
+            const msg = document.getElementById('exportMsg');
+            msg.textContent = 'Arquivo posts.json gerado para download. Faça upload/substitua no servidor público.';
+            msg.style.display = 'block';
+            setTimeout(()=>{ msg.style.display = 'none'; }, 5500);
+        });
+
+        // ------------------- GitHub Publish Helpers -------------------
+        function saveGitHubConfig({ owner, repo, branch, assetsPath, token }){
+            const cfg = { owner, repo, branch, assetsPath };
+            localStorage.setItem('github_publish_cfg', JSON.stringify(cfg));
+            if(token) localStorage.setItem('github_publish_token', token);
+            alert('Configurações GitHub salvas localmente (token armazenado no navegador).');
+        }
+        function loadGitHubConfig(){
+            const cfg = JSON.parse(localStorage.getItem('github_publish_cfg') || '{}');
+            const token = localStorage.getItem('github_publish_token') || '';
+            return { ...cfg, token };
+        }
+        function clearGitHubToken(){
+            localStorage.removeItem('github_publish_token');
+            alert('Token GitHub removido do localStorage.');
+        }
+
+        function dataURLtoBase64(dataURL){
+            return dataURL.split(',')[1];
+        }
+        function extFromMediaType(mediaType){
+            if(!mediaType) return '';
+            if(mediaType.includes('jpeg')) return '.jpg';
+            if(mediaType.includes('png')) return '.png';
+            if(mediaType.includes('gif')) return '.gif';
+            if(mediaType.includes('webp')) return '.webp';
+            if(mediaType.includes('mp4')) return '.mp4';
+            if(mediaType.includes('webm')) return '.webm';
+            if(mediaType.includes('ogg')) return '.ogg';
+            if(mediaType.includes('mp3')) return '.mp3';
+            if(mediaType.includes('wav')) return '.wav';
+            if(mediaType.includes('pdf')) return '.pdf';
+            return '';
+        }
+
+        async function githubUploadFile(owner, repo, path, filename, base64Content, branch, token, commitMessage){
+            const apiPath = `${path ? path.replace(/^\//,'').replace(/\/$/,'') + '/' : ''}${filename}`;
+            const url = `https://api.github.com/repos/${owner}/${repo}/contents/${encodeURIComponent(apiPath)}`;
+            // try to get sha (if exists)
+            let sha = null;
+            try {
+                const getRes = await fetch(url + `?ref=${encodeURIComponent(branch)}`, { headers:{ Authorization:`token ${token}`, Accept:'application/vnd.github.v3+json' } });
+                if(getRes.ok){
+                    const j = await getRes.json();
+                    sha = j.sha;
+                }
+            } catch(e){ /* ignore */ }
+            const body = { message: commitMessage || `upload ${filename}`, content: base64Content, branch };
+            if(sha) body.sha = sha;
+            const res = await fetch(url, {
+                method: 'PUT',
+                headers: { Authorization: `token ${token}`, Accept: 'application/vnd.github.v3+json', 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+            if(!res.ok){
+                const txt = await res.text();
+                throw new Error(`GitHub upload failed: ${res.status} ${txt}`);
+            }
+            return await res.json();
+        }
+
+        async function githubUpdateOrCreateJSON(owner, repo, pathFilename, jsonObject, branch, token, commitMessage){
+            const url = `https://api.github.com/repos/${owner}/${repo}/contents/${encodeURIComponent(pathFilename)}`;
+            let sha = null;
+            try {
+                const getRes = await fetch(url + `?ref=${encodeURIComponent(branch)}`, { headers:{ Authorization:`token ${token}`, Accept:'application/vnd.github.v3+json' } });
+                if(getRes.ok){
+                    const getJson = await getRes.json();
+                    sha = getJson.sha;
+                }
+            } catch(e){ /* ignore */ }
+            const content = btoa(unescape(encodeURIComponent(JSON.stringify(jsonObject, null, 2))));
+            const body = { message: commitMessage || 'update posts.json', content, branch };
+            if(sha) body.sha = sha;
+            const res = await fetch(url, {
+                method: 'PUT',
+                headers: { Authorization: `token ${token}`, Accept: 'application/vnd.github.v3+json', 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+            if(!res.ok) {
+                const txt = await res.text();
+                throw new Error(`GitHub JSON update failed: ${res.status} ${txt}`);
+            }
+            return await res.json();
+        }
+
+        // publish routine: upload medias then upload posts.json (uses buildExportableBlog)
+        async function publishBlogToGitHub(opts = {}){
+            const cfg = loadGitHubConfig();
+            const owner = opts.owner || cfg.owner;
+            const repo  = opts.repo  || cfg.repo;
+            const branch = opts.branch || cfg.branch || 'main';
+            const assetsPath = opts.assetsPath || (cfg.assetsPath || 'assets');
+            const token = opts.token || cfg.token;
+            if(!owner || !repo || !token){
+                throw new Error('Informe owner, repo e token (use "Salvar credenciais").');
+            }
+            if(typeof buildExportableBlog !== 'function'){
+                throw new Error('Função buildExportableBlog não encontrada.');
+            }
+            const exportObj = buildExportableBlog(); // {posts:[], folders:[]}
+
+            async function processPostsArray(posts){
+                for(const post of posts){
+                    if(Array.isArray(post.media)){
+                        for(let i = 0; i < post.media.length; i++){
+                            const m = post.media[i];
+                            if(m && typeof m.url === 'string' && m.url.startsWith('data:')){
+                                const base64 = dataURLtoBase64(m.url);
+                                const ext = extFromMediaType(m.mediaType) || '';
+                                const safeTitle = (post.title || 'post').replace(/[^a-z0-9\-]/gi,'').slice(0,30) || 'file';
+                                const filename = `${Date.now()}-${safeTitle}-${i}${ext}`;
+                                const commitMsg = `upload media ${filename}`;
+                                await githubUploadFile(owner, repo, assetsPath, filename, base64, branch, token, commitMsg);
+                                m.url = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${assetsPath.replace(/\/$/,'')}/${filename}`;
+                            }
+                        }
+                    }
+                }
+            }
+
+            // process top-level and folders
+            await processPostsArray(exportObj.posts || []);
+            for(const folder of (exportObj.folders || [])){
+                await processPostsArray(folder.posts || []);
+            }
+
+            const postsJsonPath = opts.postsJsonPath || 'posts.json';
+            await githubUpdateOrCreateJSON(owner, repo, postsJsonPath, exportObj, branch, token, 'update posts.json via admin panel');
+
+            return { success: true, message: 'Publicação concluída. posts.json atualizado e mídias enviadas.' };
+        }
+
+        // UI actions for GitHub config
+        document.getElementById('saveGhBtn').addEventListener('click', function(){
+            const owner = document.getElementById('ghOwner').value.trim();
+            const repo = document.getElementById('ghRepo').value.trim();
+            const branch = document.getElementById('ghBranch').value.trim() || 'main';
+            const assetsPath = document.getElementById('ghAssetsPath').value.trim() || 'assets';
+            const token = document.getElementById('ghToken').value.trim();
+            if(!owner || !repo){
+                alert('Preencha owner e repo.');
+                return;
+            }
+            saveGitHubConfig({ owner, repo, branch, assetsPath, token });
+            document.getElementById('ghToken').value = '';
+        });
+        document.getElementById('clearGhBtn').addEventListener('click', function(){
+            clearGitHubToken();
+        });
+
+        // "Publicar tudo" button
+        document.getElementById('publishNowBtn').addEventListener('click', function(){
+            const status = document.getElementById('publishStatus');
+            status.style.display = 'block'; status.textContent = 'Publicando no GitHub...';
+            publishBlogToGitHub().then(res=>{
+                status.textContent = 'Publicação completa.';
+                loadPublicBlog().then(()=> renderPosts());
+                setTimeout(()=> status.style.display='none', 5000);
+            }).catch(err=>{
+                status.textContent = 'Erro publicação: ' + (err && err.message ? err.message : err);
+                console.error(err);
+            });
+        });
+
+        // try to prefill config on load
+        (function tryPrefill(){
+            const cfg = loadGitHubConfig();
+            if(cfg.owner) document.getElementById('ghOwner').value = cfg.owner;
+            if(cfg.repo) document.getElementById('ghRepo').value = cfg.repo;
+            if(cfg.branch) document.getElementById('ghBranch').value = cfg.branch;
+            if(cfg.assetsPath) document.getElementById('ghAssetsPath').value = cfg.assetsPath;
+        })();
+
+    </script>
+</body>
+</html>
