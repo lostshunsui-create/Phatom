@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+   <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
@@ -58,8 +58,8 @@
         .error-msg { color: #ff4747; text-align: center; margin-bottom: 8px; font-weight: bold;}
         .folders-admin-list{ margin-bottom:18px; border-bottom: 1px solid #333; padding-bottom: 8px;}
         .folder-item{margin-bottom:6px;}
-        .user-list {margin-top:15px;}
-        .user-row {display:flex;align-items:center;gap:12px;margin-bottom:8px;}
+        .user-list {margin-top:15px; max-height:240px; overflow-y:auto; padding-right:6px;}
+        .user-row {display:flex;align-items:center;gap:12px;margin-bottom:8px;flex-wrap:wrap;}
         .user-row .btn {margin:0;padding:4px 9px;font-size:12px;}
         .post-actions {display:flex;gap:12px;margin:7px 0 0 0;}
         .delete-btn, .edit-btn {background: #ff4747;color: #fff;border: none;border-radius: 4px;padding: 6px 16px;cursor: pointer;font-size: 12px;letter-spacing: 2px;}
@@ -67,7 +67,7 @@
         .edit-btn:hover { background:#fff; color:#000; border:1px solid #39f16b;}
         .delete-btn:hover { background: #fff; color: #000; border: 1px solid #ff4747; }
         .help { font-size:12px;color:#bbb;margin-top:6px; }
-        @media (max-width: 600px) { .modal-content, .admin-box, .modal {max-width:99vw; padding:17px 2vw;} .small{width:100%;} }
+        @media (max-width: 600px) { .modal-content, .admin-box, .modal {max-width:99vw; padding:17px 2vw;} .small{width:100%;} .user-row {gap:8px;} .user-list {max-height:160px;} .admin-box {padding:16px;} }
         @media (max-width: 700px) { .container {max-width:99vw;} .main-title {font-size:27px;letter-spacing:7px;} .contato-discreto-list {gap:9px;} }
         @keyframes pulse {0%{transform:scale(1)} 100%{transform:scale(1.09);filter:drop-shadow(0 1px 8px #fff3);}}
     </style>
@@ -147,6 +147,7 @@
                     <button type="submit" class="btn">Criar Login</button>
                 </form>
                 <div id="userList" class="user-list"></div>
+                <div class="help" style="margin-top:6px;">Role a lista de logins para ver ou editar. No mobile a área é compacta e rolável.</div>
             </div>
 
             <div class="section-title">Config GitHub (opcional)</div>
@@ -299,6 +300,8 @@
                     panel.style.display = "none";
                 } else {
                     showAdminPanel();
+                    // ensure users area visible and scrolled to end for convenience
+                    ensureAdminPanelScroll();
                 }
             } else {
                 document.getElementById("loginModal").style.display = "grid";
@@ -328,16 +331,118 @@
             }
         });
 
-        // User management
+        //
+        // --- ADIÇÕES: sincronização de admins com GitHub, scroll responsivo e CRUD mais robusto ---
+        //
+
+        // scroll helper to ensure end of usersArea is visible (useful on mobile)
+        function ensureAdminPanelScroll() {
+            setTimeout(() => {
+                const usersArea = document.getElementById("usersArea");
+                if (usersArea) {
+                    // scroll the adminBox so the usersArea bottom is visible
+                    usersArea.scrollIntoView({ behavior: "smooth", block: "end" });
+                }
+            }, 200);
+        }
+
+        // Load saved GitHub config (owner, repo, branch, assetsPath, token)
+        function loadGitHubConfig(){
+            const cfg = JSON.parse(localStorage.getItem('github_publish_cfg') || '{}');
+            const token = localStorage.getItem('github_publish_token') || '';
+            return { ...cfg, token };
+        }
+
+        // Push phantom admin list to GitHub as phantom_admins.json (requires token saved via panel)
+        async function pushAdminsToGitHub() {
+            const cfg = loadGitHubConfig();
+            const token = cfg.token;
+            const owner = cfg.owner;
+            const repo = cfg.repo;
+            const branch = cfg.branch || 'main';
+            if(!owner || !repo || !token) {
+                // not configured — don't fail silently
+                console.warn('GitHub credentials missing for pushAdminsToGitHub.');
+                return false;
+            }
+            const path = 'phantom_admins.json';
+            const admins = getAdmins();
+            const contentBase64 = btoa(unescape(encodeURIComponent(JSON.stringify(admins, null, 2))));
+            const url = `https://api.github.com/repos/${owner}/${repo}/contents/${encodeURIComponent(path)}`;
+            // try to get existing sha
+            let sha = null;
+            try {
+                const r = await fetch(url + `?ref=${encodeURIComponent(branch)}`, { headers: { Authorization: `token ${token}`, Accept: 'application/vnd.github.v3+json' }});
+                if(r.ok){
+                    const j = await r.json();
+                    sha = j.sha;
+                }
+            } catch(e){ /* ignore */ }
+
+            const body = { message: `Atualiza phantom_admins.json via painel (${new Date().toLocaleString()})`, content: contentBase64, branch };
+            if(sha) body.sha = sha;
+            const res = await fetch(url, {
+                method: 'PUT',
+                headers: { Authorization: `token ${token}`, Accept: 'application/vnd.github.v3+json', 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+            if(!res.ok){
+                const txt = await res.text();
+                console.error('Erro ao pushAdminsToGitHub:', res.status, txt);
+                alert('Falha ao sincronizar admins no GitHub: ' + res.status);
+                return false;
+            }
+            return true;
+        }
+
+        // renderUserList enhanced with edit and immediate sync for Roughen actions
+        let editingAdminUser = null;
         function renderUserList() {
             let admins = getAdmins();
             const userList = document.getElementById("userList");
             userList.innerHTML = "";
             Object.entries(admins).forEach(([user, pass]) => {
-                userList.innerHTML += `<div class="user-row">${user !== "Roughen" ? `<button class="btn" onclick="removeAdmin('${user}')">Remover</button>` : ""}<span>${user}</span></div>`;
+                if(editingAdminUser === user){
+                    userList.innerHTML += `<div class="user-row" style="gap:6px;">
+                        <input value="${user}" disabled style="width:120px;margin-right:6px;border:1px solid #444;background:#222;color:#fff;padding:6px;">
+                        <input id="editAdminPwd" value="${pass}" style="width:150px;margin-right:6px;border:1px solid #444;background:#222;color:#fff;padding:6px;">
+                        <button class="btn" style="width:auto;padding:6px 10px;background:#39f16b;" onclick="saveEditAdmin('${user}')">Salvar</button>
+                        <button class="btn" style="width:auto;padding:6px 10px;" onclick="cancelEditAdmin()">Cancelar</button>
+                    </div>`;
+                } else {
+                    userList.innerHTML += `<div class="user-row">
+                      ${user !== "Roughen" ? `<button class="btn" style="width:auto;padding:6px 10px;" onclick="removeAdmin('${user}')">Remover</button>` : `<span style="font-size:12px;color:#bbb;padding:4px 8px;border-radius:6px;border:1px solid #333;">Roughen</span>`}
+                      <span style="flex:1 1 auto;min-width:80px;">${user}</span>
+                      <button class="btn" style="width:auto;padding:6px 10px;" onclick="editAdmin('${user}')">Editar</button>
+                    </div>`;
+                }
             });
+            ensureAdminPanelScroll();
         }
-        document.getElementById("newUserForm").addEventListener("submit", function(e){
+        window.editAdmin = function(user){
+            editingAdminUser = user;
+            renderUserList();
+            setTimeout(()=>{ let el = document.getElementById("editAdminPwd"); if(el) el.focus(); }, 120);
+        };
+        window.cancelEditAdmin = function(){ editingAdminUser = null; renderUserList(); };
+        window.saveEditAdmin = async function(user){
+            const el = document.getElementById("editAdminPwd");
+            if(!el) return;
+            const val = el.value;
+            if(user && val){
+                const admins = getAdmins();
+                admins[user] = val;
+                setAdmins(admins);
+                editingAdminUser = null;
+                renderUserList();
+                ensureAdminPanelScroll();
+                // push to GitHub if configured
+                try { await pushAdminsToGitHub(); } catch(e){ console.warn(e); }
+            }
+        };
+
+        // newUserForm: create and (if Roughen) push immediately to GitHub
+        document.getElementById("newUserForm").addEventListener("submit", async function(e){
             e.preventDefault();
             let username = document.getElementById("newUserName").value.trim();
             let password = document.getElementById("newUserPassword").value;
@@ -347,14 +452,35 @@
                 setAdmins(admins);
                 renderUserList();
                 document.getElementById("newUserForm").reset();
+                ensureAdminPanelScroll();
+
+                // If user "Roughen" creates a login, push admins file immediately to GitHub
+                if(username.toLowerCase() === "roughen") {
+                    const ok = await pushAdminsToGitHub();
+                    if(ok) {
+                        alert("Login 'Roughen' criado localmente e sincronizado com o repositório GitHub (phantom_admins.json).");
+                    }
+                }
             }
         });
-        window.removeAdmin = function(user){
+
+        // removeAdmin modified to sync immediately with GitHub
+        window.removeAdmin = async function(user){
             let admins = getAdmins();
             if(user !== "Roughen") delete admins[user];
             setAdmins(admins);
             renderUserList();
-        }
+            ensureAdminPanelScroll();
+            try {
+                await pushAdminsToGitHub();
+            } catch(e){
+                console.warn('Erro ao sincronizar remoção de admin:', e);
+            }
+        };
+
+        //
+        // --- End admin sync additions
+        //
 
         // Blog storage with compatibility
         function getBlog(){
@@ -476,6 +602,8 @@
             setBlog(blog);
             document.getElementById("folderForm").reset();
             renderFolders(); renderFoldersSelect(); loadContent();
+            // auto-sync posts.json if configured
+            trySyncPostsIfConfigured();
         });
 
         // publicação local: aceita múltiplos arquivos
@@ -513,6 +641,9 @@
                         status.textContent = 'Erro publicação: '+ (err && err.message ? err.message : err);
                         console.error(err);
                     });
+                } else {
+                    // if not explicitly publishing, still try to sync posts.json automatically if configured
+                    trySyncPostsIfConfigured();
                 }
             }
 
@@ -572,6 +703,8 @@
                 }
                 setBlog(blog);
                 renderFolders(); renderFoldersSelect(); renderPosts(); loadContent();
+                // after deletion, attempt to sync posts.json immediately if configured
+                trySyncPostsIfConfigured();
             }catch(err){
                 console.error('Erro ao apagar post:', err);
                 alert('Erro ao apagar. Veja console para detalhes.');
@@ -628,17 +761,20 @@
             let blog = getBlog();
             blog.folders.splice(idx,1);
             setBlog(blog); renderFoldersSelect(); renderFolders(); renderPosts(); loadContent();
+            trySyncPostsIfConfigured();
         };
         // Keep compatibility wrappers but prefer id-based deletion
         window.deleteFolderPost = function(folderIdx, idx){
             let blog = getBlog();
             blog.folders[folderIdx].posts.splice(idx,1);
             setBlog(blog); renderFolders(); renderPosts(); loadContent();
+            trySyncPostsIfConfigured();
         };
         window.deletePost = function(idx){
             let blog = getBlog();
             blog.posts.splice(idx,1);
             setBlog(blog); renderFolders(); renderPosts(); loadContent();
+            trySyncPostsIfConfigured();
         };
 
         // editar post by id
@@ -685,6 +821,8 @@
 
             function updateAndRefresh(){
                 setBlog(blog); loadContent(); renderFolders(); renderPosts(); closeModal();
+                // after edit, sync posts.json immediately if configured
+                trySyncPostsIfConfigured();
             }
 
             if (mediaInput.files.length > 0) {
@@ -784,11 +922,6 @@
             localStorage.setItem('github_publish_cfg', JSON.stringify(cfg));
             if(token) localStorage.setItem('github_publish_token', token);
             alert('Configurações GitHub salvas localmente (token armazenado no navegador).');
-        }
-        function loadGitHubConfig(){
-            const cfg = JSON.parse(localStorage.getItem('github_publish_cfg') || '{}');
-            const token = localStorage.getItem('github_publish_token') || '';
-            return { ...cfg, token };
         }
         function clearGitHubToken(){
             localStorage.removeItem('github_publish_token');
@@ -911,6 +1044,25 @@
             return { success: true, message: 'Publicação concluída. posts.json atualizado e mídias enviadas.' };
         }
 
+        // Try to sync posts.json automatically if owner/repo/token configured
+        async function trySyncPostsIfConfigured() {
+            const cfg = loadGitHubConfig();
+            if(!cfg.owner || !cfg.repo || !cfg.token) return; // not configured, skip
+            const statusEl = document.getElementById('publishStatus');
+            try {
+                if(statusEl){ statusEl.style.display='block'; statusEl.textContent = 'Sincronizando posts com GitHub...'; }
+                await publishBlogToGitHub();
+                if(statusEl){ statusEl.textContent = 'Sincronização concluída.'; setTimeout(()=> statusEl.style.display='none', 3000); }
+                // reload public posts to reflect changes
+                await loadPublicBlog();
+                renderPosts();
+            } catch(err){
+                console.error('Erro ao sincronizar posts com GitHub:', err);
+                if(statusEl){ statusEl.style.display='block'; statusEl.textContent = 'Erro sincronização: ' + (err && err.message ? err.message : err); }
+                setTimeout(()=> { if(statusEl) statusEl.style.display='none'; }, 6000);
+            }
+        }
+
         // UI actions for GitHub config
         document.getElementById('saveGhBtn').addEventListener('click', function(){
             const owner = document.getElementById('ghOwner').value.trim();
@@ -951,6 +1103,13 @@
             if(cfg.branch) document.getElementById('ghBranch').value = cfg.branch;
             if(cfg.assetsPath) document.getElementById('ghAssetsPath').value = cfg.assetsPath;
         })();
+
+        // initial render for user list (if authenticated)
+        // ensure renderUserList function exists and usersArea scrollable
+        if (document.getElementById('userList')) {
+            // render user list now (it will show when usersArea is visible)
+            renderUserList();
+        }
 
     </script>
 </body>
